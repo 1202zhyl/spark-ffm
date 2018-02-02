@@ -18,12 +18,10 @@
 package com.intel.imllib.fm.regression
 
 import org.apache.spark.mllib.regression._
-
 import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.linalg.{DenseMatrix, Vector, Vectors}
 import org.apache.spark.mllib.optimization.Updater
 import org.apache.spark.rdd.RDD
-
 import com.intel.imllib.fm.optimization.GradientDescentFM
 
 import scala.util.Random

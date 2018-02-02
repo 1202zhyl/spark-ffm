@@ -26,8 +26,9 @@ object FFMExample extends App {
 
     val sc = new SparkContext(new SparkConf().setAppName("FFMExample"))
 
-    if (args.length != 9) {
-      println("FFMExample <training_file> <k> <iterations> <eta> <lambda> <normal> <random> <early_stopping> <model_file>")
+    if (args.length != 10) {
+      //FFMTrain /tmp/youlei/training_data 2 50 0.05 0.000001 false false 5 /tmp/youlei/ffm/model
+      println("FFMTrain <training_file> <k> <iterations> <eta> <lambda> <normal> <random> <early_stopping> <threshold> <model_file>")
     }
 
     val data = sc.textFile(args(0)).map(_.split("\\s")).map(x => {
@@ -42,13 +43,15 @@ object FFMExample extends App {
 
     //sometimes the max feature/field number would be different in training/validation dataSet,
     // so use the whole dataset to get the max feature/field number
-    val m = data.flatMap(x => x._2).map(_._1).collect.max //+ 1
-    val n = data.flatMap(x => x._2).map(_._2).collect.max //+ 1
+    println(s"training: ${training.count}")
+    println(s"test: ${validation.count}")
+
+    val m = data.flatMap(x => x._2).map(_._1).max() //+ 1
+    val n = data.flatMap(x => x._2).map(_._1).max() //+ 1
 
     val ffm: FFMModel = FFMWithAdaGrad.train(training, validation, m, n, k = args(1).toInt,
       iterations = args(2).toInt, eta = args(3).toDouble, lambda = args(4).toDouble,
-      normalization = args(5).toBoolean, random = args(6).toBoolean, earlyStopping = args(7).toInt, "adagrad")
-
+      normalization = args(5).toBoolean, random = args(6).toBoolean, earlyStopping = args(7).toInt, threshold = args(8).toDouble, "sgd")
     //    val scores: RDD[(Double, Double)] = validation.map(x => {
     //      val p = ffm.predict(x._2, if (args(5).toBoolean) 1.0 / x._2.map { case (field, feature, value) => Math.pow(value, 2) }.sum else 1.0)
     //      val ret = if (p >= 0.5) 1.0 else -1.0

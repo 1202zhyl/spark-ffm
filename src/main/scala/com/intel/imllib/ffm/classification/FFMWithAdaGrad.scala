@@ -40,7 +40,7 @@ import scala.util.Random
   * @param solver        "sgd": parallelizedSGD, parallelizedAdaGrad would be used otherwise
   */
 class FFMWithAdaGrad(m: Int, n: Int, k: Int, iterations: Int, eta: Double, lambda: Double,
-                     normalization: Boolean, random: Boolean, earlyStopping: Int, solver: String) extends Serializable {
+                     normalization: Boolean, random: Boolean, earlyStopping: Int, threshold: Double, solver: String) extends Serializable {
 
   private val sgd = setOptimizer(solver)
 
@@ -99,7 +99,7 @@ class FFMWithAdaGrad(m: Int, n: Int, k: Int, iterations: Int, eta: Double, lambd
     */
   def run(training: RDD[(Double, Array[(Int, Int, Double)])], validation: RDD[(Double, Array[(Int, Int, Double)])]): FFMModel = {
     val gradient = new FFMGradient(m, n, k, sgd)
-    val optimizer = new GradientDescentFFM(gradient, null, k, iterations, eta, lambda, normalization, random, earlyStopping)
+    val optimizer = new GradientDescentFFM(gradient, null, k, iterations, eta, lambda, normalization, random, earlyStopping, threshold)
 
     val initWeights = generateInitWeights()
     val weights = optimizer.optimize(training, validation, initWeights, sgd)
@@ -128,9 +128,9 @@ object FFMWithAdaGrad {
     * @return FFMModel
     */
   def train(training: RDD[(Double, Array[(Int, Int, Double)])], validation: RDD[(Double, Array[(Int, Int, Double)])], m: Int, n: Int,
-            k: Int, iterations: Int, eta: Double, lambda: Double, normalization: Boolean, random: Boolean, earlyStopping: Int,
+            k: Int, iterations: Int, eta: Double, lambda: Double, normalization: Boolean, random: Boolean, earlyStopping: Int, threshold: Double,
             solver: String = "sgd"): FFMModel = {
-    new FFMWithAdaGrad(m, n, k, iterations, eta, lambda, normalization, random, earlyStopping, solver)
+    new FFMWithAdaGrad(m, n, k, iterations, eta, lambda, normalization, random, earlyStopping, threshold, solver)
       .run(training, validation)
   }
 }

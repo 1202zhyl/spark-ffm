@@ -33,7 +33,7 @@ import scala.util.Random
   */
 class GradientDescentFFM(private var gradient: FFMGradient, private var updater: Updater,
                          k: Int, iterations: Int, eta: Double, lambda: Double,
-                         normalization: Boolean, random: Boolean, earlyStopping: Int) extends Optimizer {
+                         normalization: Boolean, random: Boolean, earlyStopping: Int, threshold: Double) extends Optimizer {
 
   val sgd = true
   private var stepSize: Double = eta
@@ -133,7 +133,7 @@ class GradientDescentFFM(private var gradient: FFMGradient, private var updater:
 
   def optimize(training: RDD[(Double, Array[(Int, Int, Double)])], validation: RDD[(Double, Array[(Int, Int, Double)])], initialWeights: Vector, solver: Boolean): Vector = {
     val (weights, _) = GradientDescentFFM.parallelAdaGrad(training, validation, gradient,
-      initialWeights, this.numIterations, this.stepSize, this.regParam, normalization, random, earlyStopping, solver)
+      initialWeights, this.numIterations, this.stepSize, this.regParam, normalization, random, earlyStopping, threshold, solver)
     weights
   }
 
@@ -151,6 +151,7 @@ object GradientDescentFFM {
                       normalization: Boolean,
                       random: Boolean,
                       earlyStopping: Int,
+                      threshold: Double,
                       solver: Boolean): (Vector, Array[Double]) = {
     val numIterations = iterations
     val stochasticLossHistory = new ArrayBuffer[Double](numIterations)
@@ -159,7 +160,7 @@ object GradientDescentFFM {
     var bestWeights: Vector = tmpWeights
     var bestIteration: Int = 0
     val slices = training.getNumPartitions
-
+    println(s"slices: $slices")
     var i = 1
     var shouldStop = false
     while (!shouldStop && i <= numIterations) {
@@ -181,10 +182,20 @@ object GradientDescentFFM {
       val scores: RDD[(Double, Double)] = validation.map(x => {
         val ffm = new FFMModel(gradient.n, gradient.m, gradient.k, iterations, eta, lambda, normalization, random, tmpWeights.toArray, gradient.sgd)
         val p = ffm.predict(x._2, if (normalization) 1.0 / x._2.map { case (field, feature, value) => Math.pow(value, 2) }.sum else 1.0)
-        val ret = if (p >= 0.5) 1.0 else -1.0
+        val ret = if (p >= threshold) 1.0 else -1.0
         (ret, x._1)
       })
+
+      val tp = scores.filter(x => x._1 == x._2 && x._2 == 1.0).count().toDouble
+      val fp = scores.filter(x => x._1 == 1.0 && x._2 == -1.0).count().toDouble
+      val fn = scores.filter(x => x._1 == -1.0 && x._2 == 1.0).count().toDouble
+      val tn = scores.filter(x => x._1 == -1.0 && x._2 == -1.0).count().toDouble
+
+      val precision = tp / (tp + fp)
+      val recall = tp / (tp + fn)
+
       val accuracy = scores.filter(x => x._1 == x._2).count().toDouble / scores.count()
+      println(s"accuracy = $accuracy, tp = $tp, fp = $fp, fn = $fn, tn = $tn, precision = $precision, recall = $recall, f1 = ${2.0 * precision * recall / (precision + recall)}")
 
       validationAccuracyHistory.find(_ > accuracy) match {
         case Some(acc) =>
@@ -206,12 +217,16 @@ object GradientDescentFFM {
 
   def stopOrNot(accuracyHistory: List[Double], earlyStopping: Int): Boolean = {
     var stopping = 0
-    accuracyHistory.takeRight(earlyStopping + 1).reduceLeft((l1, l2) => {
-      if (l1 >= l2) stopping += 1
-      l2
-    })
+    if (earlyStopping == 0)
+      false
+    else {
+      accuracyHistory.takeRight(earlyStopping + 1).reduceLeft((l1, l2) => {
+        if (l1 >= l2) stopping += 1
+        l2
+      })
 
-    if (stopping >= earlyStopping) true else false
+      if (stopping >= earlyStopping) true else false
+    }
   }
 
 }
