@@ -155,7 +155,7 @@ object GradientDescentFFM {
                       solver: Boolean): (Vector, Array[Double]) = {
     val numIterations = iterations
     val stochasticLossHistory = new ArrayBuffer[Double](numIterations)
-    val validationAccuracyHistory = new ArrayBuffer[Double](numIterations)
+    val validationF1ScoreHistory = new ArrayBuffer[Double](numIterations)
     var tmpWeights = Vectors.dense(initialWeights.toArray)
     var bestWeights: Vector = tmpWeights
     var bestIteration: Int = 0
@@ -195,18 +195,18 @@ object GradientDescentFFM {
       val recall = tp / (tp + fn)
 
       val accuracy = scores.filter(x => x._1 == x._2).count().toDouble / scores.count()
-      println(s"accuracy = $accuracy, tp = $tp, fp = $fp, fn = $fn, tn = $tn, precision = $precision, recall = $recall, f1 = ${2.0 * precision * recall / (precision + recall)}")
+      val f1 = 2.0 * precision * recall / (precision + recall)
+      println(s"accuracy = $accuracy, tp = $tp, fp = $fp, fn = $fn, tn = $tn, precision = $precision, recall = $recall, f1 = $f1")
 
-      validationAccuracyHistory.find(_ > accuracy) match {
-        case Some(acc) =>
+      validationF1ScoreHistory.find(_ > f1) match {
+        case Some(score) =>
         case None =>
           bestIteration = i
           bestWeights = tmpWeights
       }
 
-      validationAccuracyHistory += accuracy
-      shouldStop = stopOrNot(validationAccuracyHistory.toList, earlyStopping)
-      println(s"accuracy = $accuracy")
+      validationF1ScoreHistory += f1
+      shouldStop = stopOrNot(validationF1ScoreHistory.toList, earlyStopping)
 
       i += 1
     }
@@ -215,12 +215,12 @@ object GradientDescentFFM {
     (bestWeights, stochasticLossHistory.toArray)
   }
 
-  def stopOrNot(accuracyHistory: List[Double], earlyStopping: Int): Boolean = {
+  def stopOrNot(f1ScoreHistory: List[Double], earlyStopping: Int): Boolean = {
     var stopping = 0
     if (earlyStopping == 0)
       false
     else {
-      accuracyHistory.takeRight(earlyStopping + 1).reduceLeft((l1, l2) => {
+      f1ScoreHistory.takeRight(earlyStopping + 1).reduceLeft((l1, l2) => {
         if (l1 >= l2) stopping += 1
         l2
       })
