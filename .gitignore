@@ -3,3 +3,6 @@ project/target/
 bin/*.sh
 *.swp
 *.tmp
+.idea
+project/project/
+spark-warehouse/
