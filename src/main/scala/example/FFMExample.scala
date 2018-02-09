@@ -27,7 +27,8 @@ object FFMExample extends App {
     val sc = new SparkContext(new SparkConf().setAppName("FFMExample"))
 
     if (args.length != 10) {
-      //FFMTrain /tmp/youlei/training_data 2 50 0.05 0.000001 false false 5 /tmp/youlei/ffm/model
+      // FFMTrain training_data 2 50 0.05 0.000001 false false 5 0.2 model
+      // normal has no effect
       println("FFMTrain <training_file> <k> <iterations> <eta> <lambda> <normal> <random> <early_stopping> <threshold> <model_file>")
     }
 
@@ -52,16 +53,8 @@ object FFMExample extends App {
     val ffm: FFMModel = FFMWithAdaGrad.train(training, validation, m, n, k = args(1).toInt,
       iterations = args(2).toInt, eta = args(3).toDouble, lambda = args(4).toDouble,
       normalization = args(5).toBoolean, random = args(6).toBoolean, earlyStopping = args(7).toInt, threshold = args(8).toDouble, "sgd")
-    //    val scores: RDD[(Double, Double)] = validation.map(x => {
-    //      val p = ffm.predict(x._2, if (args(5).toBoolean) 1.0 / x._2.map { case (field, feature, value) => Math.pow(value, 2) }.sum else 1.0)
-    //      val ret = if (p >= 0.5) 1.0 else -1.0
-    //      (ret, x._1)
-    //    })
-    //    val accuracy = scores.filter(x => x._1 == x._2).count().toDouble / scores.count()
-    //    println(s"accuracy = $accuracy")
 
-    //    ffm.save(sc, args(7))
-    //    val sameffm = FFMModel.load(sc, args(7))
+    ffm.save(sc, args(7))
 
     sc.stop()
   }
