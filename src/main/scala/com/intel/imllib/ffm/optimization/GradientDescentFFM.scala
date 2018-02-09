@@ -184,7 +184,7 @@ object GradientDescentFFM {
         val p = ffm.predict(x._2, if (normalization) 1.0 / x._2.map { case (field, feature, value) => Math.pow(value, 2) }.sum else 1.0)
         val ret = if (p >= threshold) 1.0 else -1.0
         (ret, x._1)
-      })
+      }).cache()
 
       val tp = scores.filter(x => x._1 == x._2 && x._2 == 1.0).count().toDouble
       val fp = scores.filter(x => x._1 == 1.0 && x._2 == -1.0).count().toDouble
@@ -194,7 +194,7 @@ object GradientDescentFFM {
       val precision = tp / (tp + fp)
       val recall = tp / (tp + fn)
 
-      val accuracy = scores.filter(x => x._1 == x._2).count().toDouble / scores.count()
+      val accuracy = (tp + tn) / (tp + fp + fn + tn)
       val f1 = 2.0 * precision * recall / (precision + recall)
       println(s"accuracy = $accuracy, tp = $tp, fp = $fp, fn = $fn, tn = $tn, precision = $precision, recall = $recall, f1 = $f1")
 
