@@ -179,7 +179,7 @@ object FFMModel extends Loader[FFMModel] {
       val dataRDD = sqlContext.parquetFile(dataPath(path))
       // Check schema explicitly since erasure makes it hard to use match-case for checking.
       checkSchema[Data](dataRDD.schema)
-      val dataArray = dataRDD.select("numFeatures", "numFields", "dim0", "dim1", "dim2", "n_iters", "eta", "lambda", "isNorm", "random", "weights", "sgd").take(1)
+      val dataArray = dataRDD.select("numFeatures", "numFields", "k", "n_iters", "eta", "lambda", "isNorm", "random", "weights", "sgd").take(1)
       assert(dataArray.length == 1, s"Unable to load FMModel data from: ${dataPath(path)}")
       val data = dataArray(0)
       val numFeatures = data.getInt(0)
